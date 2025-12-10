@@ -1,5 +1,7 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
+import BmiCalculator from "./pages/BmiCalculator";
+
 import {
   BrowserRouter as Router,
   Routes,
@@ -108,6 +110,15 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <SetupProfile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/bmi-calculator"
+            element={
+              <ProtectedRoute>
+                <BmiCalculator />
               </ProtectedRoute>
             }
           />
