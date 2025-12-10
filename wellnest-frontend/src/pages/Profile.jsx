@@ -1,134 +1,124 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { FiLogIn, FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
-import apiClient from "../api/apiClient";
+// src/pages/Profile.jsx
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { FiEdit2, FiMail, FiUser, FiPhone } from "react-icons/fi";
+import { fetchCurrentUser } from "../api/userApi";
 
-const Login = ({ onLoginSuccess }) => {
+const Profile = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  useEffect(() => {
+    let mounted = true;
 
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // 👁️ NEW
-
-  const handleChange = (e) => {
-    setForm((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword((prev) => !prev);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
-    setLoading(true);
-
-    try {
-      const res = await apiClient.post("/auth/login", form);
-
-      const { token, role, profileComplete, message: msg } = res.data;
-
-      if (token) localStorage.setItem("token", token);
-      if (role) localStorage.setItem("role", role);
-      if (typeof profileComplete === "boolean") {
-        localStorage.setItem(
-          "profileComplete",
-          profileComplete ? "true" : "false"
+    const loadUser = async () => {
+      try {
+        const res = await fetchCurrentUser();
+        if (!mounted) return;
+        // If your API returns the user object in res.data, use that:
+        setUser(res.data);
+      } catch (err) {
+        // show friendly error, but don't immediately redirect (ProtectedRoute handles auth)
+        console.error("fetchCurrentUser error:", err);
+        setError(
+          err?.response?.data?.message ||
+            "Failed to load profile. Please try again."
         );
+      } finally {
+        if (mounted) setLoading(false);
       }
+    };
 
-      if (typeof onLoginSuccess === "function") {
-        onLoginSuccess();
-      }
+    loadUser();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-      setMessage(msg || "Login successful");
+  if (loading) {
+    return (
+      <div className="dashboard-page">
+        <div className="dashboard-card">
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
-      if (profileComplete) {
-        setTimeout(() => navigate("/dashboard"), 800);
-      } else {
-        setTimeout(() => navigate("/setup-profile"), 800);
-      }
-    } catch (err) {
-      const errorMsg =
-        err.response?.data || "Login failed. Please check your credentials.";
-      setMessage(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (error) {
+    return (
+      <div className="dashboard-page">
+        <div className="dashboard-card">
+          <p style={{ color: "#f97373" }}>{error}</p>
+          <button
+            className="secondary-btn"
+            onClick={() => {
+              // try again or logout if you want
+              localStorage.removeItem("token");
+              navigate("/");
+            }}
+          >
+            Back to login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="dashboard-page">
+        <div className="dashboard-card">
+          <p>No profile data available.</p>
+          <Link to="/setup-profile" className="primary-btn">
+            Complete Profile
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-title">
-          <FiLogIn className="auth-title-icon" />
-          <h2>Welcome back</h2>
-          <p className="auth-subtitle">Login to your Wellnest account</p>
+    <div className="dashboard-page">
+      <div className="dashboard-card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h1>{user.name || "Your Profile"}</h1>
+            <p className="dashboard-subtitle">View and edit your profile details</p>
+          </div>
+          <div>
+            <button
+              className="ghost-btn"
+              onClick={() => navigate("/setup-profile")}
+              title="Edit profile"
+            >
+              <FiEdit2 />
+              <span style={{ marginLeft: 8 }}>Edit</span>
+            </button>
+          </div>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="input-group">
-            <FiMail className="input-icon" />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
+        <div style={{ marginTop: 18 }}>
+          <div className="profile-section" style={{ marginBottom: 12 }}>
+            <h3>Personal Info</h3>
+            <p><FiUser style={{ marginRight: 8 }} /> <strong>Name:</strong> {user.name || "—"}</p>
+            <p><FiMail style={{ marginRight: 8 }} /> <strong>Email:</strong> {user.email || "—"}</p>
+            <p><FiPhone style={{ marginRight: 8 }} /> <strong>Phone:</strong> {user.phone || "—"}</p>
           </div>
 
-          <div className="input-group password-group">
-            <FiLock className="input-icon" />
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-            <button
-              type="button"
-              className="eye-btn"
-              onClick={togglePasswordVisibility}
-            >
-              {showPassword ? <FiEyeOff /> : <FiEye />}
-            </button>
+          <div className="profile-section">
+            <h3>Body Metrics</h3>
+            <p><strong>Age:</strong> {user.age ?? "—"}</p>
+            <p><strong>Weight:</strong> {user.weightKg ?? "—"} kg</p>
+            <p><strong>Height:</strong> {user.heightCm ?? "—"} cm</p>
+            <p><strong>Fitness goal:</strong> {user.fitnessGoal || "Not set"}</p>
           </div>
-
-          <div className="forgot-row">
-            <button
-              type="button"
-              className="link-inline-btn"
-              onClick={() => navigate("/forgot-password")}
-            >
-              Forgot password?
-            </button>
-          </div>
-
-          <button type="submit" className="primary-btn" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        {message && <p className="auth-message">{message}</p>}
-
-        <p className="auth-toggle">
-          New here? <Link to="/register">Create an account</Link>
-        </p>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default Profile;
