@@ -29,10 +29,11 @@ const SetupProfile = () => {
     setMessage("");
 
     try {
-      await apiClient.post("/user/setup-profile", formData);
+      await apiClient.put("/users/me/profile", formData);
       setMessage("Profile setup completed!");
       setTimeout(() => navigate("/dashboard"), 1000);
     } catch (err) {
+      console.error("Profile setup error:", err);
       setMessage("Something went wrong. Try again.");
     }
   };

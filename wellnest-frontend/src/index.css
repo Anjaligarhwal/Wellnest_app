@@ -272,9 +272,13 @@ main {
 
 .dashboard-page {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   padding: 32px 16px 40px;
+  gap: 20px;
 }
+
 
 .dashboard-card {
   width: 100%;
