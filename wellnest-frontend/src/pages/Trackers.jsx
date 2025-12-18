@@ -17,13 +17,17 @@ const Trackers = () => {
   const [message, setMessage] = useState(""); // success or error messages
   const [messageType, setMessageType] = useState("info"); // "info" | "error" | "success"
 
-  // Workout
+    // Workout
   const [workout, setWorkout] = useState({
     type: "cardio",
     durationMinutes: 30,
     caloriesBurned: "",
     notes: "",
   });
+
+  const [userWeight, setUserWeight] = useState(70); // Default 70kg, will be fetched from user profile
+const [calculatedCalories, setCalculatedCalories] = useState(0);
+
 
   // Meal
   const [meal, setMeal] = useState({
@@ -85,6 +89,23 @@ const Trackers = () => {
     };
     load();
   }, [tab]);
+  // Fetch user weight from profile
+useEffect(() => {
+  const fetchUserWeight = async () => {
+    try {
+      const { fetchCurrentUser } = await import("../api/userApi");
+      const res = await fetchCurrentUser();
+      if (res.data && res.data.weightKg) {
+        setUserWeight(res.data.weightKg);
+      }
+    } catch (err) {
+      console.log("Could not fetch user weight, using default 70kg");
+      // Keep default weight of 70kg
+    }
+  };
+  fetchUserWeight();
+}, []);
+
   // Initialize sleep quality calculation
 useEffect(() => {
   if (sleep.hours > 0) {
@@ -149,34 +170,101 @@ const calculateSleepQuality = (hours) => {
 };
 
 
-  const onSubmitWorkout = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    try {
-      const payload = {
-        type: workout.type,
-        durationMinutes: workout.durationMinutes,
-        caloriesBurned:
-          workout.caloriesBurned === "" ? null : Number(workout.caloriesBurned),
-        notes: workout.notes,
-      };
-      await createWorkout(payload);
-      showMessage("Workout logged!", "success");
-      const res = await getWorkouts();
-      setRecentWorkouts(res.data || []);
-    } catch (err) {
-      console.error("Save workout error:", err);
-      const errMsg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error ||
-        err?.message ||
-        "Failed to save workout";
-      showMessage(errMsg, "error");
-    } finally {
-      setLoading(false);
+// Calculate calories burned based on exercise type, duration, and body weight
+const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
+  // MET (Metabolic Equivalent of Task) values for different exercises
+  const metValues = {
+    cardio: {
+      walking: 3.5,
+      jogging: 7.0,
+      running: 9.8,
+      cycling: 8.0,
+      swimming: 8.3,
+      dancing: 4.8,
+      aerobics: 6.6,
+      default: 6.0 // General cardio
+    },
+    strength: {
+      weightlifting: 6.0,
+      bodyweight: 4.0,
+      resistance: 5.0,
+      powerlifting: 6.0,
+      default: 5.0 // General strength training
+    },
+    yoga: {
+      hatha: 2.5,
+      vinyasa: 4.0,
+      power: 4.0,
+      hot: 5.0,
+      default: 3.0 // General yoga
+    },
+    pilates: {
+      default: 3.0 // Pilates
+    },
+    sports: {
+      basketball: 8.0,
+      tennis: 7.3,
+      soccer: 7.0,
+      badminton: 5.5,
+      default: 6.5 // General sports
+    },
+    flexibility: {
+      stretching: 2.3,
+      mobility: 2.5,
+      default: 2.3 // General flexibility work
     }
   };
+
+  // Get MET value for the exercise type
+  let met = metValues[exerciseType]?.default || 4.0;
+  
+  // Formula: Calories = MET × weight (kg) × time (hours)
+  const hours = durationMinutes / 60;
+  const calories = Math.round(met * weightKg * hours);
+  
+  return {
+    calories,
+    met,
+    intensity: met < 3 ? "Light" : met < 6 ? "Moderate" : "Vigorous"
+  };
+};
+
+
+  const onSubmitWorkout = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setMessage("");
+  try {
+    // Calculate calories if not already calculated
+    let finalCalories = workout.caloriesBurned;
+    if (!finalCalories && workout.durationMinutes > 0) {
+      const calorieData = calculateCaloriesBurned(workout.type, workout.durationMinutes, userWeight);
+      finalCalories = calorieData.calories;
+    }
+
+    const payload = {
+      type: workout.type,
+      durationMinutes: workout.durationMinutes,
+      caloriesBurned: finalCalories,
+      notes: workout.notes,
+    };
+    await createWorkout(payload);
+    showMessage(`Workout logged! Burned ${finalCalories} calories.`, "success");
+    const res = await getWorkouts();
+    setRecentWorkouts(res.data || []);
+  } catch (err) {
+    console.error("Save workout error:", err);
+    const errMsg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message ||
+      "Failed to save workout";
+    showMessage(errMsg, "error");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const onSubmitMeal = async (e) => {
     e.preventDefault();
@@ -314,48 +402,109 @@ const calculateSleepQuality = (hours) => {
       </div>
 
       <div className="tab-content">
-        {tab === "workout" && (
+                {tab === "workout" && (
           <>
             <form onSubmit={onSubmitWorkout} className="tracker-form">
               <label>
+                Your Weight (kg)
+                <input
+                  type="number"
+                  step="0.1"
+                  value={userWeight}
+                  onChange={(e) => {
+                    const weight = parseFloat(e.target.value || 70);
+                    setUserWeight(weight);
+                    // Recalculate calories when weight changes
+                    if (workout.durationMinutes > 0) {
+                      const calorieData = calculateCaloriesBurned(workout.type, workout.durationMinutes, weight);
+                      setCalculatedCalories(calorieData.calories);
+                      setWorkout(prev => ({ ...prev, caloriesBurned: calorieData.calories }));
+                    }
+                  }}
+                  min="30"
+                  max="200"
+                />
+              </label>
+
+                            <label>
                 Exercise type
                 <select
                   value={workout.type}
-                  onChange={(e) => setWorkout({ ...workout, type: e.target.value })}
+                  onChange={(e) => {
+                    const newType = e.target.value;
+                    setWorkout({ ...workout, type: newType });
+                    // Recalculate calories when exercise type changes
+                    if (workout.durationMinutes > 0) {
+                      const calorieData = calculateCaloriesBurned(newType, workout.durationMinutes, userWeight);
+                      setCalculatedCalories(calorieData.calories);
+                      setWorkout(prev => ({ ...prev, type: newType, caloriesBurned: calorieData.calories }));
+                    }
+                  }}
                 >
-                  <option value="cardio">Cardio</option>
-                  <option value="strength">Strength</option>
-                  <option value="yoga">Yoga</option>
-                  <option value="other">Other</option>
+                  <option value="cardio">Cardio (Running, Cycling, Swimming)</option>
+                  <option value="strength">Strength Training (Weights, Resistance)</option>
+                  <option value="yoga">Yoga (Hatha, Vinyasa, Power)</option>
+                  <option value="pilates">Pilates</option>
+                  <option value="sports">Sports (Basketball, Tennis, Soccer)</option>
+                  <option value="flexibility">Flexibility (Stretching, Mobility)</option>
                 </select>
               </label>
+
 
               <label>
                 Duration (minutes)
                 <input
                   type="number"
                   value={workout.durationMinutes}
-                  onChange={(e) =>
-                    setWorkout({ ...workout, durationMinutes: parseInt(e.target.value || 0) })
-                  }
+                  onChange={(e) => {
+                    const duration = parseInt(e.target.value || 0);
+                    setWorkout({ ...workout, durationMinutes: duration });
+                    // Recalculate calories when duration changes
+                    if (duration > 0) {
+                      const calorieData = calculateCaloriesBurned(workout.type, duration, userWeight);
+                      setCalculatedCalories(calorieData.calories);
+                      setWorkout(prev => ({ ...prev, durationMinutes: duration, caloriesBurned: calorieData.calories }));
+                    }
+                  }}
                   min="1"
+                  max="300"
                 />
               </label>
 
-              <label>
-                Calories burned (optional)
-                <input
-                  type="number"
-                  value={workout.caloriesBurned}
-                  onChange={(e) =>
-                    setWorkout({
-                      ...workout,
-                      caloriesBurned: e.target.value === "" ? "" : parseInt(e.target.value),
-                    })
-                  }
-                  min="0"
-                />
-              </label>
+              {/* Calorie Calculation Display */}
+              {workout.durationMinutes > 0 && (
+                <div style={{ 
+                  marginTop: "12px", 
+                  marginBottom: "12px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(15, 23, 42, 0.5)",
+                  border: "2px solid #22c55e"
+                }}>
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "8px",
+                    marginBottom: "8px"
+                  }}>
+                    <span style={{ fontSize: "14px", color: "#e5e7eb" }}>Estimated Calories Burned:</span>
+                    <span style={{ 
+                      fontSize: "16px", 
+                      fontWeight: "600",
+                      color: "#22c55e"
+                    }}>
+                      {calculatedCalories} kcal
+                    </span>
+                  </div>
+                  <div style={{ 
+                    fontSize: "12px", 
+                    color: "#d1d5db",
+                    lineHeight: "1.4"
+                  }}>
+                    🔥 Based on {workout.type} exercise for {workout.durationMinutes} minutes at {userWeight}kg body weight
+                  </div>
+                </div>
+              )}
 
               <label>
                 Notes
@@ -363,6 +512,7 @@ const calculateSleepQuality = (hours) => {
                   type="text"
                   value={workout.notes}
                   onChange={(e) => setWorkout({ ...workout, notes: e.target.value })}
+                  placeholder="How did the workout feel? Any specific exercises?"
                 />
               </label>
 
@@ -374,19 +524,31 @@ const calculateSleepQuality = (hours) => {
             {recentWorkouts.length > 0 && (
               <div className="recent-list">
                 <h4>Recent workouts</h4>
-                {recentWorkouts.slice(0, 6).map((w) => (
-                  <div className="card" key={w.id || JSON.stringify(w)}>
-                    <div>
-                      <strong>{w.type}</strong> — {w.durationMinutes || w.duration} min
+                {recentWorkouts.slice(0, 6).map((w) => {
+                  // Recalculate calories for display consistency
+                  const calorieData = calculateCaloriesBurned(w.type, w.durationMinutes || w.duration, userWeight);
+                  return (
+                    <div className="card" key={w.id || JSON.stringify(w)} style={{
+                      borderLeft: `4px solid #22c55e`
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <strong style={{ textTransform: "capitalize" }}>{w.type}</strong>
+                        <span>• {w.durationMinutes || w.duration} min</span>
+                        <span style={{ color: "#22c55e", fontWeight: "500" }}>
+                          • {w.caloriesBurned || calorieData.calories} kcal
+                        </span>
+                      </div>
+                      <div className="small" style={{ color: "#9ca3af" }}>
+                        {w.notes}
+                      </div>
                     </div>
-                    <div>Calories: {w.caloriesBurned || "-"}</div>
-                    <div className="small">{w.notes}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
         )}
+
 
         {tab === "meal" && (
           <>
