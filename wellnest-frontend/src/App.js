@@ -9,7 +9,7 @@ import {
   Route,
   NavLink,
 } from "react-router-dom";
-import { FiHome, FiUserPlus, FiUser, FiBarChart2, FiActivity } from "react-icons/fi";
+import { FiHome, FiUserPlus, FiUser, FiBarChart2, FiActivity, FiBookOpen, FiUsers } from "react-icons/fi";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -18,6 +18,9 @@ import Profile from "./pages/Profile";
 import SetupProfile from "./pages/SetupProfile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+import TrainerMatching from "./pages/TrainerMatching";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
@@ -77,6 +80,16 @@ const App = () => {
                 <FiUser />
                 <span>Profile</span>
               </NavLink>
+
+              <NavLink to="/blog" className="nav-link">
+                <FiBookOpen />
+                <span>Health Blog</span>
+              </NavLink>
+
+              <NavLink to="/trainers" className="nav-link">
+                <FiUsers />
+                <span>Trainer Matching</span>
+              </NavLink>
             </>
           )}
         </nav>
@@ -108,6 +121,32 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Trackers />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/blog"
+            element={
+              <ProtectedRoute>
+                <Blog />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/blog/:id"
+            element={
+              <ProtectedRoute>
+                <BlogPost />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trainers"
+            element={
+              <ProtectedRoute>
+                <TrainerMatching />
               </ProtectedRoute>
             }
           />

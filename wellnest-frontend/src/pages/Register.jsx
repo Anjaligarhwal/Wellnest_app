@@ -7,6 +7,7 @@ import {
   FiLock,
   FiEye,
   FiEyeOff,
+  FiPhone,
 } from "react-icons/fi";
 import apiClient from "../api/apiClient";
 
@@ -16,16 +17,17 @@ const Register = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     role: "USER",
   });
 
-  const [confirmPassword, setConfirmPassword] = useState(""); // 🔁 NEW
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [showPassword, setShowPassword] = useState(false); // 👁️ NEW
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // 👁️ NEW
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,7 +55,6 @@ const Register = () => {
     setMessage("");
     setLoading(true);
 
-    // 🛑 Password match validation
     if (form.password !== confirmPassword) {
       setMessage("Password and Confirm Password do not match.");
       setLoading(false);
@@ -104,6 +105,17 @@ const Register = () => {
               value={form.email}
               onChange={handleChange}
               required
+            />
+          </div>
+
+          <div className="input-group">
+            <FiPhone className="input-icon" />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Phone Number (Optional)"
+              value={form.phone}
+              onChange={handleChange}
             />
           </div>
 

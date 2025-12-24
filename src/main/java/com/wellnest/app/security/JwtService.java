@@ -13,8 +13,7 @@ import java.util.function.Function;
 public class JwtService {
 
     // Demo ke liye – project me ENV se lena
-    private static final String SECRET_KEY =
-            "this_is_a_very_long_secret_key_change_it_to_secure_one_123456";
+    private static final String SECRET_KEY = "this_is_a_very_long_secret_key_change_it_to_secure_one_123456";
 
     private Key getSignInKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
@@ -39,7 +38,7 @@ public class JwtService {
 
     public String generateToken(UserDetails userDetails) {
         long now = System.currentTimeMillis();
-        long expiry = now + 1000 * 60 * 60; // 1 hour
+        long expiry = now + 1000 * 60 * 60 * 24; // 24 hours
 
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())

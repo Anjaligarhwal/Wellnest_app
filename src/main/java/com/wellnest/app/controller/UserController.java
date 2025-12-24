@@ -19,7 +19,7 @@ public class UserController {
         this.userService = userService;
     }
 
-    // GET /api/users/me  (optional, for future)
+    // GET /api/users/me (optional, for future)
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMe(Authentication auth) {
         String email = auth.getName();
@@ -33,17 +33,16 @@ public class UserController {
                 user.getHeightCm(),
                 user.getWeightKg(),
                 user.getGender(),
-                user.getFitnessGoal()
-        );
+                user.getFitnessGoal(),
+                user.getPhone());
         return ResponseEntity.ok(dto);
     }
 
-    // PUT /api/users/me/profile  (used by Setup Profile page)
+    // PUT /api/users/me/profile (used by Setup Profile page)
     @PutMapping("/me/profile")
     public ResponseEntity<UserProfileResponse> updateProfile(
             @RequestBody ProfileUpdateRequest req,
-            Authentication auth
-    ) {
+            Authentication auth) {
         String email = auth.getName();
         User user = userService.findByEmail(email).orElseThrow();
 
@@ -52,6 +51,7 @@ public class UserController {
         user.setWeightKg(req.getWeightKg());
         user.setGender(req.getGender());
         user.setFitnessGoal(req.getFitnessGoal());
+        user.setPhone(req.getPhone());
 
         userService.save(user);
 
@@ -63,8 +63,8 @@ public class UserController {
                 user.getHeightCm(),
                 user.getWeightKg(),
                 user.getGender(),
-                user.getFitnessGoal()
-        );
+                user.getFitnessGoal(),
+                user.getPhone());
         return ResponseEntity.ok(dto);
     }
 }
