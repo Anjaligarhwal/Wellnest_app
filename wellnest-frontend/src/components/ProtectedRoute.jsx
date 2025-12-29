@@ -28,7 +28,37 @@ const ProtectedRoute = ({ children }) => {
 
   if (!isValidToken(token)) {
     // eslint-disable-next-line no-console
-    console.warn("ProtectedRoute: no valid token, redirecting to login. token:", token);
+    console.warn("ProtectedRoute: invalid or missing token — redirecting to login.", { token });
+
+    // Optional: clear obviously-bad token to avoid repeated redirects
+    if (token) {
+      try {
+        // only remove tokens that are clearly not usable
+        if (token === "undefined" || token === "null") {
+          localStorage.removeItem("token");
+        } else if (isProbablyJwt(token)) {
+          // if JWT and expired, remove it
+          try {
+            const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+            if (payload && payload.exp && Date.now() >= payload.exp * 1000) {
+              localStorage.removeItem("token");
+            }
+          } catch (_) {
+            // ignore parse errors
+          }
+        }
+      } catch (_) {
+        // ignore any storage errors
+      }
+    }
+
+    // Optional hook (global) for apps that want to run extra cleanup
+    try {
+      if (typeof window.onAuthFail === "function") window.onAuthFail();
+    } catch (e) {
+      /* ignore */
+    }
+
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 

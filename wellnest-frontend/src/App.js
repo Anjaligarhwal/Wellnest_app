@@ -76,6 +76,11 @@ const App = () => {
                 <span>Trackers</span>
               </NavLink>
 
+              <NavLink to="/analytics" className="nav-link">
+                <FiTrendingUp />
+                <span>Analytics</span>
+              </NavLink>
+
               <NavLink to="/profile" className="nav-link">
                 <FiUser />
                 <span>Profile</span>
@@ -177,6 +182,21 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/analytics/workout" element={<ProtectedRoute><WorkoutAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/nutrition" element={<ProtectedRoute><NutritionAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/sleep" element={<ProtectedRoute><SleepAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/water" element={<ProtectedRoute><WaterIntakeAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/goals" element={<ProtectedRoute><GoalProgressDetail /></ProtectedRoute>} />
+          <Route path="/analytics/health" element={<ProtectedRoute><HealthMetricsDetail /></ProtectedRoute>} />
         </Routes>
       </main>
     </Router>
