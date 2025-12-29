@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Getter
 @Entity
 @Table(name = "users")
-public class User{
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,7 +19,7 @@ public class User{
 
     private String name;
 
-    @Column(nullable = false , unique = true)
+    @Column(nullable = false, unique = true)
     private String email;
 
     private String password;
@@ -36,7 +36,7 @@ public class User{
 
     private String fitnessGoal;
 
-    private Double targetWeightKg;
+    private String phone;
 
     private String resetToken;
 
@@ -46,10 +46,10 @@ public class User{
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    public User() {
+    }
 
-    public User(){}
-
-    public User(String name , String email , String password , String role){
+    public User(String name, String email, String password, String role) {
         this.name = name;
         this.email = email;
         this.password = password;

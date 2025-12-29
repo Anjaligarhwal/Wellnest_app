@@ -1,21 +1,5 @@
-// src/components/ProtectedRoute.jsx
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-
-/**
- * ProtectedRoute
- * - rejects null/undefined/"undefined"/"" tokens
- * - performs optional JWT expiry check when token appears to be a JWT
- * - if token is invalid it clears it from localStorage to avoid redirect loops
- *
- * Note: This is backwards-compatible with your existing code.
- */
-
-const isProbablyJwt = (token) => {
-  if (typeof token !== "string") return false;
-  const parts = token.split(".");
-  return parts.length === 3;
-};
 
 const isValidToken = (token) => {
   if (!token) return false;
@@ -23,22 +7,18 @@ const isValidToken = (token) => {
   const t = token.trim();
   if (!t) return false;
   if (t === "undefined" || t === "null") return false;
-
-  // If token looks like a JWT, try expiry check (best-effort, won't throw)
-  if (isProbablyJwt(t)) {
-    try {
-      const payload = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-      if (payload && payload.exp && Date.now() >= payload.exp * 1000) {
-        // token expired
-        return false;
-      }
-    } catch (e) {
-      // malformed JWT payload — treat as "unknown" but don't fail here,
-      // we'll fall back to returning true (so token string presence still grants access).
-      // If you want stricter behavior, return false here.
+  // Check JWT expiry
+  try {
+    const parts = t.split('.');
+    if (parts.length !== 3) return true; // Not a JWT, skip check
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload.exp && Date.now() >= payload.exp * 1000) {
+      console.warn("Token expired");
+      return false;
     }
+  } catch (e) {
+    /* not a valid JWT or atob failed - skip expiry check */
   }
-
   return true;
 };
 
@@ -47,7 +27,6 @@ const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem("token");
 
   if (!isValidToken(token)) {
-    // Helpful debug log (remove in production)
     // eslint-disable-next-line no-console
     console.warn("ProtectedRoute: invalid or missing token — redirecting to login.", { token });
 

@@ -1,8 +1,7 @@
-// src/pages/SetupProfile.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../api/apiClient";
-import { FiUser, FiActivity, FiTarget, FiMonitor } from "react-icons/fi";
+import { FiUser, FiActivity, FiTarget, FiMonitor, FiPhone } from "react-icons/fi";
 
 const SetupProfile = () => {
   const navigate = useNavigate();
@@ -13,6 +12,7 @@ const SetupProfile = () => {
     weightKg: "",
     gender: "",
     fitnessGoal: "",
+    phone: "",
   });
 
   const [message, setMessage] = useState("");
@@ -96,6 +96,18 @@ const SetupProfile = () => {
                 <option value="OTHER">Other</option>
               </select>
             </div>
+          </div>
+
+          {/* New Phone Number Field */}
+          <div className="input-group" style={{ marginBottom: 12 }}>
+            <FiPhone className="input-icon" />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Phone Number (Optional)"
+              value={formData.phone}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="input-group">

@@ -7,6 +7,7 @@ import {
   FiLock,
   FiEye,
   FiEyeOff,
+  FiPhone,
 } from "react-icons/fi";
 import apiClient from "../api/apiClient";
 
@@ -16,22 +17,17 @@ const Register = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     role: "USER",
   });
 
-   const [passwordStrength, setPasswordStrength] = useState({
-  isValid: false,
-  score: 0,
-  feedback: []
-  });
-
-  const [confirmPassword, setConfirmPassword] = useState(""); // 🔁 NEW
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [showPassword, setShowPassword] = useState(false); // 👁️ NEW
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // 👁️ NEW
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
   const { name, value } = e.target;
@@ -111,36 +107,15 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setMessage("");
-  setLoading(true);
+    e.preventDefault();
+    setMessage("");
+    setLoading(true);
 
-  // 🛑 Password strength validation
-  if (!passwordStrength.isValid && form.password) {
-    setMessage("Please create a stronger password that meets all requirements.");
-    setLoading(false);
-    return;
-  }
-
-  // 🛑 Password match validation
-  if (form.password !== confirmPassword) {
-    setMessage("Password and Confirm Password do not match.");
-    setLoading(false);
-    return;
-  }
-
-  try {
-    const res = await apiClient.post("/auth/register", form);
-    setMessage(res.data || "Registered successfully");
-    setTimeout(() => navigate("/"), 1000);
-  } catch (err) {
-    const errorMsg =
-      err.response?.data || "Registration failed. Please try again.";
-    setMessage(errorMsg);
-  } finally {
-    setLoading(false);
-  }
-};
+    if (form.password !== confirmPassword) {
+      setMessage("Password and Confirm Password do not match.");
+      setLoading(false);
+      return;
+    }
 
 
   return (
@@ -174,6 +149,17 @@ const Register = () => {
               value={form.email}
               onChange={handleChange}
               required
+            />
+          </div>
+
+          <div className="input-group">
+            <FiPhone className="input-icon" />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Phone Number (Optional)"
+              value={form.phone}
+              onChange={handleChange}
             />
           </div>
 

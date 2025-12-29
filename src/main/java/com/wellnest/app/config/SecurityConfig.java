@@ -26,7 +26,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
 
     public SecurityConfig(CustomUserDetailsService userDetailsService,
-                          JwtAuthenticationFilter jwtFilter) {
+            JwtAuthenticationFilter jwtFilter) {
         this.userDetailsService = userDetailsService;
         this.jwtFilter = jwtFilter;
     }
@@ -55,12 +55,17 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 // wire our CorsConfigurationSource bean into Spring Security
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()  // login/register open
-                        .anyRequest().authenticated()                 // rest require token
+
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Allow
+                                                                                                         // pre-flight
+                        .requestMatchers("/api/auth/**").permitAll() // login/register open
+                        // Blog endpoints - allow public reading
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/blog/**").permitAll()
+                        // Trainer endpoints - allow public reading
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/trainers/**").permitAll()
+                        .anyRequest().authenticated() // rest require token
                 )
                 .authenticationProvider(authProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -71,22 +76,25 @@ public class SecurityConfig {
     /**
      * CORS configuration source used by Spring Security.
      * IMPORTANT:
-     *  - Use the exact frontend origin (http://localhost:3000) — do NOT return multiple origins in the header.
-     *  - If you set allowCredentials(true), Access-Control-Allow-Origin cannot be "*".
+     * - Use the exact frontend origin (http://localhost:3000) — do NOT return
+     * multiple origins in the header.
+     * - If you set allowCredentials(true), Access-Control-Allow-Origin cannot be
+     * "*".
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Replace with your frontend origin(s) exactly if different
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+
+        // Allow all origins with credentials using pattern matching
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
-        config.setAllowCredentials(true); // set true if you send credentials/cookies; okay to leave true for JWT in header
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         // apply to all API paths
-        source.registerCorsConfiguration("/api/**", config);
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }
