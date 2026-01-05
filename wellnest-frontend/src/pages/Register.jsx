@@ -29,74 +29,55 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleChange = (e) => {
-  const { name, value } = e.target;
+  const [passwordStrength, setPasswordStrength] = useState({
+    isValid: false,
+    score: 0,
+    feedback: [],
+  });
 
-  if (name === "confirmPassword") {
-    setConfirmPassword(value);
-  } else {
+  const validatePassword = (password) => {
+    const feedback = [];
+    let score = 0;
+
+    if (password.length >= 8) score++;
+    else feedback.push("8+ characters");
+
+    if (/[A-Z]/.test(password)) score++;
+    else feedback.push("1 uppercase");
+
+    if (/[a-z]/.test(password)) score++;
+    else feedback.push("1 lowercase");
+
+    if (/\d/.test(password)) score++;
+    else feedback.push("1 number");
+
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+    else feedback.push("1 special char");
+
+    return {
+      isValid: score >= 4,
+      score,
+      feedback,
+    };
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === "confirmPassword") {
+      setConfirmPassword(value);
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: value,
     }));
 
-    // Validate password strength when password changes
     if (name === "password") {
-      const validation = validatePassword(value);
-      setPasswordStrength(validation);
+      setPasswordStrength(validatePassword(value));
     }
-  }
-};
-
-
-  const validatePassword = (password) => {
-  const feedback = [];
-  let score = 0;
-
-  // Check length
-  if (password.length >= 8) {
-    score += 1;
-  } else {
-    feedback.push("At least 8 characters");
-  }
-
-  // Check uppercase
-  if (/[A-Z]/.test(password)) {
-    score += 1;
-  } else {
-    feedback.push("At least one uppercase letter");
-  }
-
-  // Check lowercase
-  if (/[a-z]/.test(password)) {
-    score += 1;
-  } else {
-    feedback.push("At least one lowercase letter");
-  }
-
-  // Check numbers
-  if (/\d/.test(password)) {
-    score += 1;
-  } else {
-    feedback.push("At least one number");
-  }
-
-  // Check special characters
-  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    score += 1;
-  } else {
-    feedback.push("At least one special character (!@#$%^&*)");
-  }
-
-  const isValid = score >= 4; // Require at least 4 out of 5 criteria
-
-  return {
-    isValid,
-    score,
-    feedback
   };
-};
-
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
@@ -112,11 +93,29 @@ const Register = () => {
     setLoading(true);
 
     if (form.password !== confirmPassword) {
-      setMessage("Password and Confirm Password do not match.");
+      setMessage("Password and Confirm Password do not match");
       setLoading(false);
       return;
     }
 
+    if (!passwordStrength.isValid) {
+      setMessage("Password is too weak");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await apiClient.post("/auth/register", form);
+      setMessage("Registration successful!");
+      navigate("/");
+    } catch (err) {
+      setMessage(
+        err.response?.data?.message || "Registration failed. Try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-page">
@@ -173,49 +172,27 @@ const Register = () => {
               onChange={handleChange}
               required
             />
-            <button
-              type="button"
-              className="eye-btn"
-              onClick={togglePasswordVisibility}
-            >
+            <button type="button" className="eye-btn" onClick={togglePasswordVisibility}>
               {showPassword ? <FiEyeOff /> : <FiEye />}
             </button>
           </div>
-                    {/* Password Strength Indicator */}
+
           {form.password && (
-            <div style={{ marginTop: "8px", marginBottom: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                <span style={{ fontSize: "12px", color: "#9ca3af" }}>Password Strength:</span>
-                <div style={{ display: "flex", gap: "2px" }}>
-                  {[1, 2, 3, 4, 5].map((level) => (
-                    <div
-                      key={level}
-                      style={{
-                        width: "20px",
-                        height: "4px",
-                        borderRadius: "2px",
-                        backgroundColor: level <= passwordStrength.score 
-                          ? passwordStrength.score <= 2 ? "#ef4444" 
-                          : passwordStrength.score <= 3 ? "#f59e0b" 
-                          : "#22c55e"
-                          : "#374151"
-                      }}
-                    />
-                  ))}
-                </div>
-                <span style={{ 
-                  fontSize: "11px", 
+            <div style={{ fontSize: "12px", marginBottom: "10px" }}>
+              Strength:{" "}
+              <b
+                style={{
                   color: passwordStrength.isValid ? "#22c55e" : "#ef4444",
-                  fontWeight: "500"
-                }}>
-                  {passwordStrength.score <= 2 ? "Weak" 
-                   : passwordStrength.score <= 3 ? "Medium" 
-                   : "Strong"}
-                </span>
-              </div>
-              
-              {passwordStrength.feedback.length > 0 && (
-                <div style={{ fontSize: "11px", color: "#ef4444" }}>
+                }}
+              >
+                {passwordStrength.score <= 2
+                  ? "Weak"
+                  : passwordStrength.score <= 3
+                  ? "Medium"
+                  : "Strong"}
+              </b>
+              {!passwordStrength.isValid && (
+                <div style={{ color: "#ef4444" }}>
                   Missing: {passwordStrength.feedback.join(", ")}
                 </div>
               )}
@@ -254,17 +231,13 @@ const Register = () => {
             </select>
           </div>
 
-          <button 
-            type="submit" 
-            className="primary-btn" 
-            disabled={loading || (form.password && !passwordStrength.isValid)}
-            style={{
-              opacity: (loading || (form.password && !passwordStrength.isValid)) ? 0.6 : 1
-            }}
+          <button
+            type="submit"
+            className="primary-btn"
+            disabled={loading}
           >
             {loading ? "Creating..." : "Register"}
           </button>
-
         </form>
 
         {message && <p className="auth-message">{message}</p>}

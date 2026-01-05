@@ -42,6 +42,8 @@ public class User {
 
     private LocalDateTime resetTokenExpiry;
 
+    private Double targetWeightKg;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

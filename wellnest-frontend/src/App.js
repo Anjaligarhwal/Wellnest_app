@@ -1,16 +1,24 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
-import BmiCalculator from "./pages/BmiCalculator";
-import Trackers from "./pages/Trackers";
-
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   NavLink,
 } from "react-router-dom";
-import { FiHome, FiUserPlus, FiUser, FiBarChart2, FiActivity, FiBookOpen, FiUsers } from "react-icons/fi";
 
+import {
+  FiHome,
+  FiUserPlus,
+  FiUser,
+  FiBarChart2,
+  FiActivity,
+  FiBookOpen,
+  FiUsers,
+  FiTrendingUp,
+} from "react-icons/fi";
+
+// Pages
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -21,8 +29,23 @@ import ResetPassword from "./pages/ResetPassword";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import TrainerMatching from "./pages/TrainerMatching";
+import Trackers from "./pages/Trackers";
+import BmiCalculator from "./pages/BmiCalculator";
+import AnalyticsPage from "./pages/AnalyticsPage";
 
+// Analytics Detail Pages
+import WorkoutAnalyticsDetail from "./pages/detailed-analytics/WorkoutAnalyticsDetail";
+import NutritionAnalyticsDetail from "./pages/detailed-analytics/NutritionAnalyticsDetail";
+import SleepAnalyticsDetail from "./pages/detailed-analytics/SleepAnalyticsDetail";
+import WaterIntakeAnalyticsDetail from "./pages/detailed-analytics/WaterIntakeAnalyticsDetail";
+import GoalProgressDetail from "./pages/detailed-analytics/GoalProgressDetail";
+import HealthMetricsDetail from "./pages/detailed-analytics/HealthMetricsDetail";
+
+// Components
 import ProtectedRoute from "./components/ProtectedRoute";
+import ThemeToggle from "./components/ThemeToggle";
+
+// Styles
 import "./index.css";
 
 const App = () => {
@@ -30,7 +53,6 @@ const App = () => {
     !!localStorage.getItem("token")
   );
 
-  // In case token changes from other tabs (optional but good)
   useEffect(() => {
     const handleStorage = () => {
       setIsLoggedIn(!!localStorage.getItem("token"));
@@ -49,7 +71,7 @@ const App = () => {
         </div>
 
         <nav>
-          {/* Not logged in -> show Login / Register only */}
+          {/* Not logged in */}
           {!isLoggedIn && (
             <>
               <NavLink to="/" className="nav-link">
@@ -60,10 +82,13 @@ const App = () => {
                 <FiUserPlus />
                 <span>Register</span>
               </NavLink>
+
+              {/* Theme toggle even on login page (optional) */}
+              <ThemeToggle />
             </>
           )}
 
-          {/* Logged in -> show Dashboard / Trackers / Profile */}
+          {/* Logged in */}
           {isLoggedIn && (
             <>
               <NavLink to="/dashboard" className="nav-link">
@@ -95,6 +120,9 @@ const App = () => {
                 <FiUsers />
                 <span>Trainer Matching</span>
               </NavLink>
+
+              {/* 🌗 THEME TOGGLE */}
+              <ThemeToggle />
             </>
           )}
         </nav>
@@ -126,6 +154,63 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Trackers />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics/workout"
+            element={
+              <ProtectedRoute>
+                <WorkoutAnalyticsDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics/nutrition"
+            element={
+              <ProtectedRoute>
+                <NutritionAnalyticsDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics/sleep"
+            element={
+              <ProtectedRoute>
+                <SleepAnalyticsDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics/water"
+            element={
+              <ProtectedRoute>
+                <WaterIntakeAnalyticsDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics/goals"
+            element={
+              <ProtectedRoute>
+                <GoalProgressDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics/health"
+            element={
+              <ProtectedRoute>
+                <HealthMetricsDetail />
               </ProtectedRoute>
             }
           />
@@ -182,21 +267,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <AnalyticsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/analytics/workout" element={<ProtectedRoute><WorkoutAnalyticsDetail /></ProtectedRoute>} />
-          <Route path="/analytics/nutrition" element={<ProtectedRoute><NutritionAnalyticsDetail /></ProtectedRoute>} />
-          <Route path="/analytics/sleep" element={<ProtectedRoute><SleepAnalyticsDetail /></ProtectedRoute>} />
-          <Route path="/analytics/water" element={<ProtectedRoute><WaterIntakeAnalyticsDetail /></ProtectedRoute>} />
-          <Route path="/analytics/goals" element={<ProtectedRoute><GoalProgressDetail /></ProtectedRoute>} />
-          <Route path="/analytics/health" element={<ProtectedRoute><HealthMetricsDetail /></ProtectedRoute>} />
         </Routes>
       </main>
     </Router>
