@@ -1,5 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 import {
   BrowserRouter as Router,
   Routes,
@@ -87,6 +88,7 @@ const App = () => {
 
   return (
     <Router>
+      <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
       <header className="top-nav">
         <div className="logo">
           <span className="logo-dot" />

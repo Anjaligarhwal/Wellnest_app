@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity } from 'react-icons/fi';
 import { getTrainerRequests, updateRequestStatus, getChatHistory, sendMessage, getClientDetails, saveDietPlan, getDietPlanForClient } from '../api/trainerApi';
 
@@ -42,10 +43,11 @@ const ClientDetails = () => {
     const handleStatusUpdate = async (id, status) => {
         try {
             await updateRequestStatus(id, status);
+            toast.success(`Request ${status.toLowerCase()}!`);
             fetchRequests(); // Refresh
         } catch (error) {
             console.error(error);
-            alert("Failed to update status");
+            toast.error("Failed to update status");
         }
     };
 
@@ -67,7 +69,7 @@ const ClientDetails = () => {
             setShowClientModal(true);
         } catch (error) {
             console.error("Failed to fetch client details", error);
-            alert("Could not load client details.");
+            toast.error("Could not load client details.");
         }
     };
 
@@ -129,11 +131,11 @@ const ClientDetails = () => {
                 ...dietData
             };
             await saveDietPlan(payload);
-            alert("Diet plan saved successfully!");
+            toast.success("Diet plan saved successfully!");
             setShowDietModal(false);
         } catch (error) {
             console.error(error);
-            alert("Failed to save diet plan");
+            toast.error("Failed to save diet plan");
         } finally {
             setDietLoading(false);
         }

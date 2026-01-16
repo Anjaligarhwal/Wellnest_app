@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { FiStar, FiMapPin, FiPhone, FiMail, FiCopy, FiCheck, FiUserPlus, FiMessageSquare, FiX, FiSend } from 'react-icons/fi';
 import { requestConnection, getChatHistory, sendMessage, rateTrainer } from '../api/trainerApi';
 
@@ -31,15 +32,17 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
         setTimeout(() => setCopiedField(null), 2000);
     };
 
-    const handleConnect = async () => {
+    const handleSendRequest = async () => {
         setLoading(true);
         try {
             await requestConnection(trainer.id, message);
             setShowModal(false);
+            setMessage("Hi, I'd like to train with you!");
+            toast.success(`Request sent to ${trainer.name}!`);
             if (onConnectRefresh) onConnectRefresh();
         } catch (error) {
-            console.error(error);
-            alert("Failed to send request");
+            console.error("Failed to send request", error);
+            toast.error("Failed to send request. Try again.");
         } finally {
             setLoading(false);
         }
@@ -82,9 +85,10 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
             if (res.data && res.data.rating) {
                 setRating(res.data.rating);
             }
-            if (onConnectRefresh) onConnectRefresh();
+            // User rating implies we rely on local visual, so no need to force update average visually immediately if visual prioritized userRating.
         } catch (err) {
             console.error("Rate failed", err);
+            toast.error("Failed to rate trainer");
         }
     };
 
@@ -97,6 +101,15 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
 
     const isPending = connectionStatus === 'PENDING';
     const isActive = connectionStatus === 'ACTIVE';
+
+    // Helper to calculate star fill
+    const getFill = (star) => {
+        // Logic: if hovering, use hoverRating. 
+        // Else if user has rated locally, use userRating.
+        // Else use global average rating.
+        const val = hoverRating || (userRating !== null ? userRating : Math.round(rating));
+        return val >= star;
+    };
 
     return (
         <>
@@ -115,7 +128,7 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
                                 onMouseLeave={() => setHoverRating(0)}
                             >
                                 {[1, 2, 3, 4, 5].map(star => {
-                                    const isFilled = (hoverRating || (userRating !== null ? userRating : Math.round(rating))) >= star;
+                                    const isFilled = getFill(star);
                                     return (
                                         <span
                                             key={star}
@@ -229,7 +242,7 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
                             />
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <button className="secondary-btn" onClick={() => setShowModal(false)} style={{ flex: 1 }}>Cancel</button>
-                                <button className="primary-btn" onClick={handleConnect} disabled={loading} style={{ flex: 1 }}>
+                                <button className="primary-btn" onClick={handleSendRequest} disabled={loading} style={{ flex: 1 }}>
                                     {loading ? 'Sending...' : 'Send Request'}
                                 </button>
                             </div>
