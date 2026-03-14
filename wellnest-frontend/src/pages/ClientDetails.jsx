@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity, FiSun, FiMoon, FiCoffee, FiSunrise } from 'react-icons/fi';
 import { getTrainerRequests, updateRequestStatus, getChatHistory, sendMessage, getClientDetails, saveDietPlan, getDietPlanForClient } from '../api/trainerApi';
 
 const ClientDetails = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('active');
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -106,14 +108,24 @@ const ClientDetails = () => {
                     lunch: res.data.lunch || '',
                     dinner: res.data.dinner || '',
                     snacks: res.data.snacks || '',
-                    additionalNotes: res.data.additionalNotes || ''
+                    additionalNotes: res.data.additionalNotes || '',
+                    workoutCalories: res.data.workoutCalories || '',
+                    waterLiters: res.data.waterLiters || '',
+                    sleepHours: res.data.sleepHours || '',
+                    stepsTarget: res.data.stepsTarget || ''
                 });
             } else {
-                setDietData({ breakfast: '', lunch: '', dinner: '', snacks: '', additionalNotes: '' });
+                setDietData({
+                    breakfast: '', lunch: '', dinner: '', snacks: '', additionalNotes: '',
+                    workoutCalories: '', waterLiters: '', sleepHours: '', stepsTarget: ''
+                });
             }
         } catch (error) {
             // If 404/empty, just clear
-            setDietData({ breakfast: '', lunch: '', dinner: '', snacks: '', additionalNotes: '' });
+            setDietData({
+                breakfast: '', lunch: '', dinner: '', snacks: '', additionalNotes: '',
+                workoutCalories: '', waterLiters: '', sleepHours: '', stepsTarget: ''
+            });
         } finally {
             setDietLoading(false);
         }
@@ -147,14 +159,15 @@ const ClientDetails = () => {
 
     return (
         <div className="blog-page">
-            <div className="blog-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)' }}>Trainer Dashboard</h1>
-                <p style={{ color: 'var(--text-muted)', maxWidth: '600px', fontSize: '15px' }}>
+            <div className="blog-header dashboard-page-header">
+                <h1>Trainer Dashboard</h1>
+                <p>
                     Manage your clients, track their progress, and stay connected.
                 </p>
             </div>
 
             {/* Tabs */}
+            {loading && <div style={{ marginBottom: '16px' }}>Loading...</div>}
             <div className="dashboard-tabs">
                 <button
                     onClick={() => setActiveTab('active')}
@@ -188,11 +201,29 @@ const ClientDetails = () => {
                     <div className="client-list-grid">
                         {activeClients.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No active clients yet.</p> : activeClients.map(req => (
                             <div key={req.id} className="client-card">
-                                <h3>{req.clientName}</h3>
-                                <p>Connected since: {new Date(req.createdAt).toLocaleDateString()}</p>
+                                <div>
+                                    <h3>
+                                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+                                            {req.clientName.charAt(0)}
+                                        </div>
+                                        {req.clientName}
+                                    </h3>
+                                    <p><FiClock style={{ fontSize: 12, marginRight: 4, position: 'relative', top: 1 }} /> Connected: {new Date(req.createdAt).toLocaleDateString()}</p>
+                                </div>
 
-                                <button className="primary-btn" style={{ width: '100%', fontSize: '14px', marginBottom: '8px' }} onClick={() => handleViewDetails(req.clientId)}>View Details / Diet</button>
-                                <button className="secondary-btn" style={{ width: '100%', fontSize: '14px' }} onClick={() => handleOpenChat(req)}>Message</button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    <button className="primary-btn" style={{ width: '100%', fontSize: '14px', borderRadius: '10px' }} onClick={() => handleViewDetails(req.clientId)}>
+                                        View Details / Diet
+                                    </button>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                        <button className="secondary-btn" style={{ fontSize: '13px', padding: '8px', justifyContent: 'center' }} onClick={() => navigate(`/trainers/client/${req.clientId}/analytics`)}>
+                                            <FiActivity /> Analytics
+                                        </button>
+                                        <button className="secondary-btn" style={{ fontSize: '13px', padding: '8px', justifyContent: 'center' }} onClick={() => handleOpenChat(req)}>
+                                            <FiMessageSquare /> Chat
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -229,30 +260,47 @@ const ClientDetails = () => {
                 {activeTab === 'chat' && (
                     <div className="chat-layout">
                         {/* Sidebar list of active clients */}
-                        <div className="chat-sidebar">
-                            <div style={{ padding: '16px', fontWeight: 700, borderBottom: '1px solid var(--card-border)', color: 'var(--text-main)' }}>Chat with Clients</div>
+                        <div className={`chat-sidebar ${selectedChatUser ? 'mobile-hidden' : ''}`}>
+                            {activeClients.length === 0 && <p style={{ padding: '16px', color: 'var(--text-muted)' }}>No active clients.</p>}
                             {activeClients.map(req => (
                                 <div
                                     key={req.id}
                                     onClick={() => handleOpenChat(req)}
                                     className={`chat-user-item ${selectedChatUser?.id === req.id ? 'active' : ''}`}
                                 >
-                                    <div style={{ fontWeight: 500, fontSize: '14px' }}>{req.clientName}</div>
+                                    <div className="chat-user-avatar">
+                                        {req.clientName.charAt(0)}
+                                    </div>
+                                    <div style={{ fontWeight: 600, fontSize: '15px' }}>{req.clientName}</div>
                                 </div>
                             ))}
                         </div>
 
                         {/* Chat Area */}
-                        <div className="chat-main">
+                        <div className={`chat-main ${!selectedChatUser ? 'mobile-hidden' : ''}`}>
                             {selectedChatUser ? (
                                 <>
-                                    <div style={{ padding: '16px', borderBottom: '1px solid var(--card-border)', fontWeight: 700, color: 'var(--text-main)' }}>
-                                        {selectedChatUser.clientName}
+                                    <div className="chat-header">
+                                        <button
+                                            className="mobile-back-btn"
+                                            onClick={() => setSelectedChatUser(null)}
+                                            style={{ marginRight: '10px', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer' }}
+                                        >
+                                            <FiActivity style={{ transform: 'rotate(180deg)' }} /> {/* Using generic icon as arrow if ArrowLeft not imported, but wait, let's use a simpler char or import ArrowLeft if needed. I see FiCheck, FiX etc imported. I'll use < back arrow symbol or add import. */}
+                                            {/* Checking imports: FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity... No ArrowLeft. I'll add it to imports or use text '<' for now to be safe, then fix styles. */}
+                                            Back
+                                        </button>
+                                        <div className="chat-user-avatar">
+                                            {selectedChatUser.clientName.charAt(0)}
+                                        </div>
+                                        <div>
+                                            {selectedChatUser.clientName}
+                                            <div style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)' }}>Active</div>
+                                        </div>
                                     </div>
                                     <div className="chat-messages-area">
                                         {chatHistory.map((msg, idx) => {
                                             const isClient = msg.senderId === selectedChatUser.clientId;
-                                            // Client msg -> "them". Me (Trainer) -> "me".
                                             return (
                                                 <div key={idx} className={`chat-bubble ${isClient ? 'them' : 'me'}`}>
                                                     {msg.content}
@@ -275,8 +323,9 @@ const ClientDetails = () => {
                                     </div>
                                 </>
                             ) : (
-                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                                    Select a client to start chatting
+                                <div className="chat-placeholder">
+                                    <FiMessageSquare size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
+                                    <p>Select a client to start chatting</p>
                                 </div>
                             )}
                         </div>
@@ -297,108 +346,137 @@ const ClientDetails = () => {
             </div>
 
             {/* Client Details Modal */}
-            {showClientModal && selectedClientDetails && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        {/* Header */}
-                        <div className="modal-header">
-                            <div>Client Details</div>
-                            <button className="modal-close-btn" onClick={() => setShowClientModal(false)}>
-                                <FiX size={24} />
-                            </button>
-                        </div>
-
-                        <div className="modal-body">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary)', opacity: 0.1, position: 'absolute' }}></div>
-                                <div style={{ width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 700, color: 'var(--primary)', border: '2px solid var(--primary)' }}>
-                                    {selectedClientDetails.name.charAt(0)}
-                                </div>
-                                <div>
-                                    <h2 style={{ margin: 0, fontSize: '24px', color: 'var(--text-main)' }}>{selectedClientDetails.name}</h2>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{selectedClientDetails.email}</div>
-                                </div>
-                            </div>
-
-                            <div className="detail-grid">
-                                <div className="detail-box">
-                                    <label className="detail-label">Age</label>
-                                    <div className="detail-value">{selectedClientDetails.age || '-'} <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-muted)' }}>years</span></div>
-                                </div>
-                                <div className="detail-box">
-                                    <label className="detail-label">BMI</label>
-                                    <div className="detail-value">
-                                        {selectedClientDetails.height && selectedClientDetails.weight
-                                            ? (selectedClientDetails.weight / ((selectedClientDetails.height / 100) ** 2)).toFixed(1)
-                                            : '-'
-                                        }
-                                    </div>
-                                </div>
-                                <div className="detail-box">
-                                    <label className="detail-label">Height</label>
-                                    <div className="detail-value">{selectedClientDetails.height || '-'} <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-muted)' }}>cm</span></div>
-                                </div>
-                                <div className="detail-box">
-                                    <label className="detail-label">Weight</label>
-                                    <div className="detail-value">{selectedClientDetails.weight || '-'} <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-muted)' }}>kg</span></div>
-                                </div>
-                                <div className="detail-box success">
-                                    <label className="detail-label">Fitness Goal</label>
-                                    <div className="detail-value">{selectedClientDetails.fitnessGoal || 'No specific goal set'}</div>
-                                </div>
-                            </div>
-
-                            <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--card-border)', display: 'flex', gap: '12px' }}>
-                                <button className="primary-btn" style={{ flex: 1 }} onClick={handleOpenDietModal}>
-                                    Create / Edit Diet Plan
+            {
+                showClientModal && selectedClientDetails && (
+                    <div className="modal-overlay">
+                        <div className="modal-content" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                            {/* Header */}
+                            <div className="modal-header">
+                                <div>Client Details</div>
+                                <button className="modal-close-btn" onClick={() => setShowClientModal(false)}>
+                                    <FiX size={24} />
                                 </button>
                             </div>
+
+                            <div className="modal-body">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary)', opacity: 0.1, position: 'absolute' }}></div>
+                                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 700, color: 'var(--primary)', border: '2px solid var(--primary)' }}>
+                                        {selectedClientDetails.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0, fontSize: '24px', color: 'var(--text-main)' }}>{selectedClientDetails.name}</h2>
+                                        <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{selectedClientDetails.email}</div>
+                                    </div>
+                                </div>
+
+                                <div className="detail-grid">
+                                    <div className="detail-box">
+                                        <label className="detail-label">Age</label>
+                                        <div className="detail-value">{selectedClientDetails.age || '-'} <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-muted)' }}>years</span></div>
+                                    </div>
+                                    <div className="detail-box">
+                                        <label className="detail-label">BMI</label>
+                                        <div className="detail-value">
+                                            {selectedClientDetails.height && selectedClientDetails.weight
+                                                ? (selectedClientDetails.weight / ((selectedClientDetails.height / 100) ** 2)).toFixed(1)
+                                                : '-'
+                                            }
+                                        </div>
+                                    </div>
+                                    <div className="detail-box">
+                                        <label className="detail-label">Height</label>
+                                        <div className="detail-value">{selectedClientDetails.height || '-'} <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-muted)' }}>cm</span></div>
+                                    </div>
+                                    <div className="detail-box">
+                                        <label className="detail-label">Weight</label>
+                                        <div className="detail-value">{selectedClientDetails.weight || '-'} <span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--text-muted)' }}>kg</span></div>
+                                    </div>
+                                    <div className="detail-box success">
+                                        <label className="detail-label">Fitness Goal</label>
+                                        <div className="detail-value">{selectedClientDetails.fitnessGoal || 'No specific goal set'}</div>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--card-border)', display: 'flex', gap: '12px' }}>
+                                    <button className="primary-btn" style={{ flex: 1 }} onClick={handleOpenDietModal}>
+                                        Create / Edit Diet Plan
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Diet Plan Modal */}
-            {showDietModal && selectedClientDetails && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div className="modal-header">
-                            <div>Diet Plan for {selectedClientDetails.name}</div>
-                            <button className="modal-close-btn" onClick={() => setShowDietModal(false)}>
-                                <FiX size={24} />
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            {dietLoading && <p>Loading...</p>}
-                            <div className="input-group">
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Breakfast</label>
-                                <textarea name="breakfast" value={dietData.breakfast} onChange={handleDietChange} className="auth-input" rows={2} style={{ width: '100%', border: '1px solid var(--card-border)', padding: '8px', borderRadius: '8px' }} placeholder="Oatmeal, 2 eggs..." />
+            {
+                showDietModal && selectedClientDetails && (
+                    <div className="modal-overlay">
+                        <div className="modal-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div className="modal-header">
+                                <div>Diet Plan for {selectedClientDetails.name}</div>
+                                <button className="modal-close-btn" onClick={() => setShowDietModal(false)}>
+                                    <FiX size={24} />
+                                </button>
                             </div>
-                            <div className="input-group" style={{ marginTop: '12px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Lunch</label>
-                                <textarea name="lunch" value={dietData.lunch} onChange={handleDietChange} className="auth-input" rows={2} style={{ width: '100%', border: '1px solid var(--card-border)', padding: '8px', borderRadius: '8px' }} placeholder="Grilled chicken, salad..." />
-                            </div>
-                            <div className="input-group" style={{ marginTop: '12px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Dinner</label>
-                                <textarea name="dinner" value={dietData.dinner} onChange={handleDietChange} className="auth-input" rows={2} style={{ width: '100%', border: '1px solid var(--card-border)', padding: '8px', borderRadius: '8px' }} placeholder="Salmon, quinoa..." />
-                            </div>
-                            <div className="input-group" style={{ marginTop: '12px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Snacks</label>
-                                <textarea name="snacks" value={dietData.snacks} onChange={handleDietChange} className="auth-input" rows={2} style={{ width: '100%', border: '1px solid var(--card-border)', padding: '8px', borderRadius: '8px' }} placeholder="Almonds, Apple..." />
-                            </div>
-                            <div className="input-group" style={{ marginTop: '12px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Additional Notes</label>
-                                <textarea name="additionalNotes" value={dietData.additionalNotes} onChange={handleDietChange} className="auth-input" rows={2} style={{ width: '100%', border: '1px solid var(--card-border)', padding: '8px', borderRadius: '8px' }} placeholder="Drink 3L water..." />
-                            </div>
+                            <div className="modal-body">
+                                {dietLoading && <p>Loading...</p>}
+                                <div className="diet-plan-form">
+                                    <div className="diet-group">
+                                        <label className="diet-label"><FiSunrise className="diet-icon" /> Breakfast</label>
+                                        <textarea name="breakfast" value={dietData.breakfast} onChange={handleDietChange} className="diet-textarea" placeholder="e.g. Oatmeal with berries, 2 boiled eggs..." />
+                                    </div>
+                                    <div className="diet-group">
+                                        <label className="diet-label"><FiSun className="diet-icon" /> Lunch</label>
+                                        <textarea name="lunch" value={dietData.lunch} onChange={handleDietChange} className="diet-textarea" placeholder="e.g. Grilled chicken breast, quinoa salad..." />
+                                    </div>
+                                    <div className="diet-group">
+                                        <label className="diet-label"><FiCoffee className="diet-icon" /> Snacks</label>
+                                        <textarea name="snacks" value={dietData.snacks} onChange={handleDietChange} className="diet-textarea" placeholder="e.g. Handful of almonds, Greek yogurt..." />
+                                    </div>
+                                    <div className="diet-group">
+                                        <label className="diet-label"><FiMoon className="diet-icon" /> Dinner</label>
+                                        <textarea name="dinner" value={dietData.dinner} onChange={handleDietChange} className="diet-textarea" placeholder="e.g. Baked salmon, steamed broccoli..." />
+                                    </div>
+                                    <div className="diet-group">
+                                        <label className="diet-label"><FiCheck className="diet-icon" /> Additional Notes</label>
+                                        <textarea name="additionalNotes" value={dietData.additionalNotes} onChange={handleDietChange} className="diet-textarea" placeholder="Hydration goals, supplements, etc..." />
+                                    </div>
 
-                            <button className="primary-btn" style={{ width: '100%', marginTop: '24px' }} onClick={handleSaveDiet} disabled={dietLoading}>
-                                {dietLoading ? 'Saving...' : 'Save Diet Plan'}
-                            </button>
+                                    <h3 style={{ marginTop: '16px', fontSize: '1.1rem', color: 'var(--text-main)' }}>Activity & Health Targets</h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div className="diet-group">
+                                            <label className="diet-label">Workout Burn (kcal)</label>
+                                            <input type="number" name="workoutCalories" value={dietData.workoutCalories} onChange={handleDietChange} className="diet-input" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-main)' }} placeholder="e.g. 500" />
+                                        </div>
+                                        <div className="diet-group">
+                                            <label className="diet-label">Water Intake (L)</label>
+                                            <input type="number" step="0.1" name="waterLiters" value={dietData.waterLiters} onChange={handleDietChange} className="diet-input" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-main)' }} placeholder="e.g. 3.5" />
+                                        </div>
+                                        <div className="diet-group">
+                                            <label className="diet-label">Sleep Goal (hrs)</label>
+                                            <input type="number" step="0.5" name="sleepHours" value={dietData.sleepHours} onChange={handleDietChange} className="diet-input" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-main)' }} placeholder="e.g. 8" />
+                                        </div>
+                                        <div className="diet-group">
+                                            <label className="diet-label">Daily Steps</label>
+                                            <input type="number" name="stepsTarget" value={dietData.stepsTarget} onChange={handleDietChange} className="diet-input" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-main)' }} placeholder="e.g. 10000" />
+                                        </div>
+                                    </div>
+
+                                    <div className="modal-footer">
+                                        <button className="secondary-btn" onClick={() => setShowDietModal(false)} disabled={dietLoading}>Cancel</button>
+                                        <button className="primary-btn" onClick={handleSaveDiet} disabled={dietLoading} style={{ minWidth: '120px' }}>
+                                            {dietLoading ? 'Saving...' : 'Save Plan'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

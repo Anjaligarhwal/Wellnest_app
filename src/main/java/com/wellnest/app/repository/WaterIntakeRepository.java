@@ -6,7 +6,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface WaterIntakeRepository extends JpaRepository<WaterIntake, Long> {
-        List<WaterIntake> findByUserIdOrderByLoggedAtDesc(Long userId);
+    List<WaterIntake> findByUserIdOrderByLoggedAtDesc(Long userId);
 
-    List<WaterIntake> findByUserIdAndLoggedAtBetween(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime);
+    List<WaterIntake> findByUserIdAndLoggedAtBetween(Long userId, LocalDateTime startDateTime,
+            LocalDateTime endDateTime);
+
+    List<WaterIntake> findByLoggedAtBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    void deleteByUserId(Long userId);
 }

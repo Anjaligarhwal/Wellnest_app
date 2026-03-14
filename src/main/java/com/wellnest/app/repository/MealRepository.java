@@ -6,7 +6,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MealRepository extends JpaRepository<Meal, Long> {
-        List<Meal> findByUserIdOrderByLoggedAtDesc(Long userId);
+    List<Meal> findByUserIdOrderByLoggedAtDesc(Long userId);
 
     List<Meal> findByUserIdAndLoggedAtBetween(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    List<Meal> findByLoggedAtBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    void deleteByUserId(Long userId);
 }

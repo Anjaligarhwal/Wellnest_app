@@ -28,9 +28,9 @@ public class TrackerService {
     private final SleepLogRepository sleepLogRepository;
 
     public TrackerService(WorkoutRepository workoutRepository,
-                          MealRepository mealRepository,
-                          WaterIntakeRepository waterIntakeRepository,
-                          SleepLogRepository sleepLogRepository) {
+            MealRepository mealRepository,
+            WaterIntakeRepository waterIntakeRepository,
+            SleepLogRepository sleepLogRepository) {
         this.workoutRepository = workoutRepository;
         this.mealRepository = mealRepository;
         this.waterIntakeRepository = waterIntakeRepository;
@@ -45,6 +45,16 @@ public class TrackerService {
     public Workout createWorkoutForUser(Long userId, WorkoutDto dto) {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "workout dto is required");
+
+        // Enforce Limit: Max 2 workouts per day
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        long todayCount = workoutRepository.findByUserIdOrderByPerformedAtDesc(userId).stream()
+                .filter(w -> w.getPerformedAt().isAfter(startOfDay))
+                .count();
+
+        if (todayCount >= 2) {
+            throw new IllegalArgumentException("Daily Limit Reached: You can only log 2 workouts per day.");
+        }
 
         Workout workout = new Workout();
         workout.setUserId(userId);
@@ -62,11 +72,33 @@ public class TrackerService {
         return workoutRepository.findByUserIdOrderByPerformedAtDesc(userId);
     }
 
+    public void deleteWorkout(Long userId, Long workoutId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(workoutId, "workoutId is required");
+        Workout w = workoutRepository.findById(workoutId)
+                .orElseThrow(() -> new RuntimeException("Workout not found"));
+        if (!w.getUserId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this workout");
+        }
+        workoutRepository.delete(w);
+    }
+
     // -------------------- MEAL --------------------
 
     public Meal createMealForUser(Long userId, MealDto dto) {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "meal dto is required");
+
+        // Enforce Limit: Max 1 entry per Meal Type per day
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        boolean alreadyLoggedType = mealRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
+                .filter(m -> m.getLoggedAt().isAfter(startOfDay))
+                .anyMatch(m -> m.getMealType().equalsIgnoreCase(dto.getMealType()));
+
+        if (alreadyLoggedType) {
+            throw new IllegalArgumentException(
+                    "Daily Limit Reached: You have already logged " + dto.getMealType() + " today.");
+        }
 
         Meal meal = new Meal();
         meal.setUserId(userId);
@@ -86,11 +118,45 @@ public class TrackerService {
         return mealRepository.findByUserIdOrderByLoggedAtDesc(userId);
     }
 
+    public void deleteMeal(Long userId, Long mealId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(mealId, "mealId is required");
+        Meal m = mealRepository.findById(mealId)
+                .orElseThrow(() -> new RuntimeException("Meal not found"));
+        if (!m.getUserId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this meal");
+        }
+        mealRepository.delete(m);
+    }
+
     // -------------------- WATER --------------------
 
     public WaterIntake createWaterForUser(Long userId, WaterIntakeDto dto) {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "water dto is required");
+
+        // Enforce Limit: Max 10 Liters Total per day
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        double todayTotal = waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
+                .filter(w -> w.getLoggedAt().isAfter(startOfDay))
+                .mapToDouble(WaterIntake::getLiters)
+                .sum();
+
+        if (todayTotal + dto.getLiters() > 10.0) {
+            throw new IllegalArgumentException("Daily Limit Reached: You cannot log more than 10L of water per day.");
+        }
+
+        // Enforce Cooldown: Max 1 entry per hour
+        List<WaterIntake> history = waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId);
+        if (!history.isEmpty()) {
+            WaterIntake last = history.get(0);
+            LocalDateTime now = LocalDateTime.now();
+            long minutesDiff = java.time.Duration.between(last.getLoggedAt(), now).toMinutes();
+            if (minutesDiff < 60) {
+                throw new IllegalArgumentException(
+                        "Cooldown Active: Please wait " + (60 - minutesDiff) + " minutes before logging water again.");
+            }
+        }
 
         WaterIntake water = new WaterIntake();
         water.setUserId(userId);
@@ -106,11 +172,31 @@ public class TrackerService {
         return waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId);
     }
 
+    public void deleteWater(Long userId, Long waterId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(waterId, "waterId is required");
+        WaterIntake w = waterIntakeRepository.findById(waterId)
+                .orElseThrow(() -> new RuntimeException("Water log not found"));
+        if (!w.getUserId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this water log");
+        }
+        waterIntakeRepository.delete(w);
+    }
+
     // -------------------- SLEEP --------------------
 
     public SleepLog createSleepForUser(Long userId, SleepLogDto dto) {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "sleep dto is required");
+
+        // Enforce Limit: Max 1 Sleep Record per day
+        LocalDate today = LocalDate.now();
+        boolean alreadyLoggedSleep = sleepLogRepository.findByUserIdOrderBySleepDateDesc(userId).stream()
+                .anyMatch(s -> s.getSleepDate().equals(today));
+
+        if (alreadyLoggedSleep) {
+            throw new IllegalArgumentException("Daily Limit Reached: You can only log sleep once per day.");
+        }
 
         SleepLog sleep = new SleepLog();
         sleep.setUserId(userId);
@@ -125,5 +211,25 @@ public class TrackerService {
     public List<SleepLog> getSleepForUser(Long userId) {
         Assert.notNull(userId, "userId is required");
         return sleepLogRepository.findByUserIdOrderBySleepDateDesc(userId);
+    }
+
+    public void deleteSleep(Long userId, Long sleepLogId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(sleepLogId, "sleepLogId is required");
+        SleepLog s = sleepLogRepository.findById(sleepLogId)
+                .orElseThrow(() -> new RuntimeException("Sleep log not found"));
+        if (!s.getUserId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this sleep log");
+        }
+        sleepLogRepository.delete(s);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void cleanupUserData(Long userId) {
+        Assert.notNull(userId, "userId is required");
+        workoutRepository.deleteByUserId(userId);
+        mealRepository.deleteByUserId(userId);
+        waterIntakeRepository.deleteByUserId(userId);
+        sleepLogRepository.deleteByUserId(userId);
     }
 }

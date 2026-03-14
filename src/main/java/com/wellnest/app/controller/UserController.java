@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class UserController {
 
     private final UserService userService;
@@ -35,7 +35,9 @@ public class UserController {
                 user.getWeightKg(),
                 user.getGender(),
                 user.getFitnessGoal(),
-                user.getPhone());
+                user.getPhone(),
+                user.isVerified(),
+                user.isVerificationRequested());
         return ResponseEntity.ok(dto);
     }
 
@@ -47,9 +49,15 @@ public class UserController {
         String email = auth.getName();
         User user = userService.findByEmail(email).orElseThrow();
 
+        if (req.getWeightKg() != null && !req.getWeightKg().equals(user.getWeightKg())) {
+            userService.updateWeight(user, req.getWeightKg());
+        } else {
+            user.setWeightKg(req.getWeightKg());
+        }
+
         user.setAge(req.getAge());
         user.setHeightCm(req.getHeightCm());
-        user.setWeightKg(req.getWeightKg());
+        // Weight set above or in updateWeight
         user.setGender(req.getGender());
         user.setFitnessGoal(req.getFitnessGoal());
         user.setPhone(req.getPhone());
@@ -65,17 +73,31 @@ public class UserController {
                 user.getWeightKg(),
                 user.getGender(),
                 user.getFitnessGoal(),
-                user.getPhone());
+                user.getPhone(),
+                user.isVerified(),
+                user.isVerificationRequested());
         return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/me/target-weight")
     public ResponseEntity<Void> updateTargetWeight(
             @RequestBody UpdateTargetWeightRequest req,
-            Authentication auth
-    ) {
+            Authentication auth) {
         String email = auth.getName();
         userService.updateTargetWeight(email, req.getTargetWeightKg());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/request-verification")
+    public ResponseEntity<?> requestVerification(Authentication authentication) {
+        if (authentication == null)
+            return ResponseEntity.status(401).build();
+        String email = authentication.getName();
+        User user = userService.findByEmail(email).orElseThrow();
+
+        user.setVerificationRequested(true);
+        userService.save(user);
+
+        return ResponseEntity.ok("Verification requested successfully");
     }
 }
